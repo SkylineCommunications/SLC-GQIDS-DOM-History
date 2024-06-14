@@ -8,7 +8,6 @@ namespace Skyline.GQI.Sources.DOM.History.Provider
 
 	using Skyline.DataMiner.Net.Apps.History.DomInstances;
 	using Skyline.DataMiner.Net.History;
-	using Skyline.DataMiner.Net.Sections;
 
 	public enum DomChangeType
 	{
@@ -25,18 +24,30 @@ namespace Skyline.GQI.Sources.DOM.History.Provider
 		{
 		}
 
-		public DomChange(Dictionary<Guid, KeyValuePair<SectionDefinition, FieldDescriptor>> fieldMap, HistoryChange history, DomSectionChange sectionChange, DomFieldValueChange fieldChange)
+		public DomChange(
+			List<DomFieldContainer> fieldMap,
+			HistoryChange history,
+			DomSectionChange sectionChange,
+			DomFieldValueChange fieldChange)
 		{
+			var helperContainer = fieldMap.Find(x => x.Field.ID.Id == fieldChange.FieldDescriptorId.Id);
+			if (helperContainer != null)
+			{
+				var sectionDefinition = helperContainer.SectionDefinition;
+				var fieldDescriptor = helperContainer.Field;
+
+				SectionDefinitionName = SectionDefinitionId = Convert.ToString(sectionDefinition.GetID().Id);
+				SectionDefinitionName = sectionDefinition.GetName();
+				FieldDescriptorName = fieldDescriptor.Name;
+			}
+
 			DomHistoryId = history.ID;
 			DomInstanceId = Convert.ToString(history.SubjectId.ToAttachmentString());
 			DateOfChange = history.Time;
 			Type = DomChangeType.SectionChange;
 			ChangedBy = history.FullUsername;
 			SectionId = Convert.ToString(sectionChange.SectionId.Id);
-			SectionDefinitionId = Convert.ToString(fieldMap[fieldChange.FieldDescriptorId.Id].Key.GetID().Id);
-			SectionDefinitionName = fieldMap[fieldChange.FieldDescriptorId.Id].Key.GetName();
 			FieldDescriptorId = Convert.ToString(fieldChange.FieldDescriptorId.Id);
-			FieldDescriptorName = fieldMap[fieldChange.FieldDescriptorId.Id].Value.Name;
 			OldValue = Convert.ToString(fieldChange.ValueBefore?.Value);
 			NewValue = Convert.ToString(fieldChange.ValueAfter?.Value);
 		}

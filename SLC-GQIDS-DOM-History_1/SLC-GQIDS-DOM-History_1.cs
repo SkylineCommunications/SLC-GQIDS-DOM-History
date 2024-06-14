@@ -62,7 +62,6 @@ namespace Skyline.GQI.Sources.DOM.History
 	using System.Linq;
 
 	using Skyline.DataMiner.Analytics.GenericInterface;
-	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.GQI.Sources.DOM.History.Provider;
 
 	[GQIMetaData(Name = "Get DOM History")]

@@ -40,13 +40,24 @@ namespace Skyline.GQI.Sources.DOM.History.Provider
 			var filter = HistoryChangeExposers.SubjectID.Equal(instance.ID.ToFileFriendlyString());
 			var historyAll = helper.DomInstanceHistory.Read(filter);
 
-			helper.StitchDomInstances(new List<DomInstance> { instance });
-			var fieldMap = instance.Sections.SelectMany(section =>
+			var definition = instance.GetDomDefinition();
+			var sectionDefinitionIdFilters = definition.SectionDefinitionLinks.Select(x => SectionDefinitionExposers.ID.Equal(x.SectionDefinitionID));
+			var sectionDefinitionFilters = new ORFilterElement<SectionDefinition>(sectionDefinitionIdFilters.ToArray());
+			var sectionDefinitions = helper.SectionDefinitions.Read(sectionDefinitionFilters) ?? new List<SectionDefinition>();
+
+			var fieldMap = new List<DomFieldContainer>();
+			foreach(var sectionDefinition in sectionDefinitions)
 			{
-				var sectionDef = section.GetSectionDefinition();
-				return sectionDef.GetAllFieldDescriptors().Select(field =>
-					new { Field = field, Section = sectionDef });
-			}).ToDictionary(key => key.Field.ID.Id, value => new KeyValuePair<SectionDefinition, FieldDescriptor>(value.Section, value.Field));
+				var fields = sectionDefinition.GetAllFieldDescriptors();
+				foreach (var field in fields)
+				{
+					fieldMap.Add(new DomFieldContainer
+					{
+						SectionDefinition = sectionDefinition,
+						Field = field,
+					});
+				}
+			}
 
 			var changes = new List<DomChange>();
 			changes.AddRange(
