@@ -37,6 +37,7 @@ namespace Skyline.GQI.Sources.DOM.History.Provider
 				return new List<DomChange>();
 			}
 
+			helper.StitchDomInstances(new List<DomInstance> { instance });
 			var filter = HistoryChangeExposers.SubjectID.Equal(instance.ID.ToFileFriendlyString());
 			var historyAll = helper.DomInstanceHistory.Read(filter);
 
