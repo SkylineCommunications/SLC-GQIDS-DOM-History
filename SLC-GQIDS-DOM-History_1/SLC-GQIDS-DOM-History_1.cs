@@ -45,7 +45,9 @@ Revision History:
 
 DATE		VERSION		AUTHOR			COMMENTS
 
-30/05/2024	1.0.0.1		AMA, Skyline	Initial version
+30/05/2024	1.0.1		AMA, Skyline	Initial version
+18/06/2024	1.0.2		AMA, Skyline	Fixed exceptions when multiple sections or removed sections were present in the history
+01/07/2024	1.0.3		AMA, Skyline	Return empty table, when no module or instance is given. This could be intentional, for example when no row is selected in a table
 ****************************************************************************
 */
 
@@ -72,8 +74,8 @@ namespace Skyline.GQI.Sources.DOM.History
 		private Guid domInstanceId;
 
 		#region IGQIInputArguments
-		private readonly GQIStringArgument domInstanceModuleArgs = new GQIStringArgument("DOM Module") { IsRequired = true };
-		private readonly GQIStringArgument domInstanceIdArgs = new GQIStringArgument("DOM Instance ID") { IsRequired = true };
+		private readonly GQIStringArgument domInstanceModuleArgs = new GQIStringArgument("DOM Module") { IsRequired = false, DefaultValue = String.Empty };
+		private readonly GQIStringArgument domInstanceIdArgs = new GQIStringArgument("DOM Instance ID") { IsRequired = false, DefaultValue = String.Empty };
 
 		public GQIArgument[] GetInputArguments()
 		{
@@ -82,11 +84,20 @@ namespace Skyline.GQI.Sources.DOM.History
 
 		public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 		{
-			var domModule = args.GetArgumentValue(domInstanceModuleArgs);
-			var rawDomInstanceId = args.GetArgumentValue(domInstanceIdArgs);
-			if (!Guid.TryParse(rawDomInstanceId, out domInstanceId))
+			if (!args.TryGetArgumentValue(domInstanceModuleArgs, out var domModule) ||
+				String.IsNullOrEmpty(domModule))
 			{
-				throw new ArgumentException("DOM Instance ID, is not a valid System.Guid");
+				// If no valid DOM Module ID is given return an empty table.
+				dataProvider = null;
+				return new OnArgumentsProcessedOutputArgs();
+			}
+
+			if (!args.TryGetArgumentValue(domInstanceIdArgs, out var rawDomInstanceId) ||
+				!Guid.TryParse(rawDomInstanceId, out domInstanceId))
+			{
+				// If no valid DOM Instance ID is given return an empty table.
+				dataProvider = null;
+				return new OnArgumentsProcessedOutputArgs();
 			}
 
 			dataProvider = new DataProvider(dms, domModule);
@@ -120,6 +131,14 @@ namespace Skyline.GQI.Sources.DOM.History
 
 		public GQIPage GetNextPage(GetNextPageInputArgs args)
 		{
+			if (dataProvider == null)
+			{
+				return new GQIPage(new GQIRow[0])
+				{
+					HasNextPage = false,
+				};
+			}
+
 			var changes = dataProvider.GetHistoryForInstance(domInstanceId);
 
 			var rows = changes.Select(change => new GQIRow(
